@@ -9,12 +9,13 @@ const PanelMenu = imports.ui.panelMenu;
 /*Import tweener to do the animations of the UI elements*/
 const Tweener = imports.ui.tweener;
 
-
+/* to be externelized -- configuration*/
 const TW_URL = 'http://muslimsalat.com/montreal/daily.json';
 const TW_AUTH_KEY = '59e8cc147ce8af2a0ea52d976e27aa5b';
 
 let text, button;
 let _httpSession;
+let _salatTimes = {};
 
 /*
   Function to call when the label is opacity 0%, as the label remains as a
@@ -57,31 +58,49 @@ function _showPopin(salatTxt) {
       REFERENCE: http://hosted.zeh.com.br/tweener/docs/en-us/
      */
     Tweener.addTween(text,
-                     { opacity: 10,
-                       time: 3,
+                     { opacity: 100,
+                       time: 7,
                        transition: 'easeOutQuad',
                        onComplete: _hidePopin });
 }
 
 function _loadData() {
-	let params = {
-		key: TW_AUTH_KEY
-	};
-	_httpSession = new Soup.Session();
-	let message = Soup.form_request_new_from_hash('GET', TW_URL, params);
-	_httpSession.queue_message(message, Lang.bind(this, function (_httpSession, message) {
-				if (message.status_code !== 200)
-					return;
-				let json = JSON.parse(message.response_body.data);
-				_refreshUI(json);
-			}
-		)
-	);
+	//let _nowDate = GLib.DateTime.new_now_local();
+	//let _plusMargeTime = GLib.DateTime.add_hours(_lastUpdateDate, 3);
+	// GLib.DateTime.time_compare(_plusMargeTime, _nowDate ) < 0
+	let update = true;
+	if (update) {
+		// call the API
+		let params = {
+			key: TW_AUTH_KEY
+		};
+		_httpSession = new Soup.Session();
+		let message = Soup.form_request_new_from_hash('GET', TW_URL, params);
+		_httpSession.queue_message(message, Lang.bind(this, function (_httpSession, message, _salatTimes) {
+					if (message.status_code !== 200)
+						return;
+					let json = JSON.parse(message.response_body.data);
+					//_lastUpdateDate = GLib.DateTime.new_now_local();
+					_salatTimes = json.items[0];
+					global.log(_salatTimes.fajr.toString());
+					_refreshUI(_salatTimes);
+				}
+			)
+		);
+	}
+
+
 }
 
 function _refreshUI(data) {
-	let txt = data.items[0].fajr.toString();
-	global.log(txt);
+	let fajr = data.fajr.toString();
+	let shurooq = data.shurooq.toString();
+	let dhuhr = data.dhuhr.toString();
+	let asr = data.asr.toString();
+	let maghrib = data.maghrib.toString();
+	let isha = data.isha.toString();
+	let txt = fajr + '\n' + shurooq + '\n' + dhuhr + '\n' +asr + '\n' +maghrib + '\n' +isha;
+	//global.log(txt);
   _showPopin(txt);
 }
 
@@ -95,6 +114,7 @@ function init() {
 		track_hover: true
 	});
 
+  //_timer = new Timer.Timer();
 	textOfButton = new St.Label({text: "أوقات الصلاة"});
 	button.set_child(textOfButton);
 
